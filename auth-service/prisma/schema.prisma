@@ -1,0 +1,642 @@
+// ------------------------------------------------------------
+// Prisma schema for Neon Postgres (Job Portal / ATS)
+// ------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------
+// Enums
+// ------------------------
+
+enum Role {
+  OWNER
+  ADMIN
+  RECRUITER
+  HIRING_MANAGER
+  CANDIDATE
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DELETED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+  FREELANCE
+}
+
+enum LocationType {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum JobType {
+  PERMANENT
+  CONTRACT
+  TEMPORARY
+  INTERN
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  PKR
+  INR
+  AED
+}
+
+enum ApplicationStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  WEB_PUSH
+}
+
+enum NotificationType {
+  APPLICATION_MOVED
+  APPLICATION_NOTE
+  NEW_JOB_MATCH
+  DIGEST
+  BILLING
+}
+
+enum PlanInterval {
+  MONTH
+  YEAR
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum EventType {
+  USER_LOGIN
+  JOB_CREATED
+  APPLICATION_CREATED
+  APPLICATION_STAGE_UPDATED
+  SUBSCRIPTION_RENEWED
+  WEBHOOK_RECEIVED
+}
+
+// ------------------------
+// Core multi‑tenancy & auth
+// ------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships      Membership[]
+  companies        Company[]
+  jobs             Job[]
+  subscriptions    Subscription[]
+  PipelineStage    PipelineStage[]
+  SubscriptionPlan SubscriptionPlan[]
+  Invoice          Invoice[]
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  status    UserStatus @default(ACTIVE)
+  avatarUrl String?
+  locale    String? // e.g. en, ur
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Auth
+  password String?
+  oauth    OAuthAccount[]
+
+  // Relations
+  memberships          Membership[]
+  applications         Application[]
+  notes                ApplicationNote[]      @relation("NoteAuthor")
+  candidate            CandidateProfile?
+  JobView              JobView[]
+  Attachment           Attachment[]
+  SavedSearch          SavedSearch[]
+  JobAlertSubscription JobAlertSubscription[]
+  Bookmark             Bookmark[]
+  Notification         Notification[]
+  InAppNotification    InAppNotification[]
+
+  @@index([status])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String
+  role      Role
+  createdAt DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId, role])
+}
+
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// ------------------------
+// Companies & addresses
+// ------------------------
+
+model Company {
+  id         String   @id @default(cuid())
+  orgId      String
+  name       String
+  slug       String   @unique
+  websiteUrl String?
+  logoUrl    String?
+  about      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  addresses Address[]
+  jobs      Job[]
+
+  @@index([orgId])
+}
+
+model Address {
+  id         String  @id @default(cuid())
+  companyId  String
+  label      String? // e.g., "Head Office"
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  postalCode String?
+  country    String
+  latitude   Float?
+  longitude  Float?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, city, country])
+}
+
+// ------------------------
+// Jobs, skills, search
+// ------------------------
+
+model Skill {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  createdAt DateTime   @default(now())
+  jobs      JobSkill[]
+}
+
+model Job {
+  id             String         @id @default(cuid())
+  orgId          String
+  companyId      String
+  title          String
+  slug           String         @unique
+  descriptionMd  String
+  employmentType EmploymentType
+  jobType        JobType        @default(PERMANENT)
+  locationType   LocationType
+  country        String?
+  city           String?
+  remoteAllowed  Boolean        @default(true)
+  salaryMin      Int?
+  salaryMax      Int?
+  currency       Currency       @default(USD)
+  experienceMin  Int? // years
+  experienceMax  Int?
+  isFeatured     Boolean        @default(false)
+  isPublished    Boolean        @default(true)
+  publishedAt    DateTime?      @default(now())
+  closingAt      DateTime?
+  views          Int            @default(0)
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  org          Organization           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  company      Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  skills       JobSkill[]
+  applications Application[]
+  bookmarks    Bookmark[]
+  alerts       JobAlertSubscription[]
+  // For Postgres full‑text search, consider adding a tsvector column via SQL migration.
+  // searchVector Unsupported("tsvector")?  // add in a custom migration and a GIN index.
+  JobView      JobView[]
+  Attachment   Attachment[]
+
+  @@index([orgId, companyId])
+  @@index([isPublished, isFeatured])
+  @@index([locationType, country, city])
+}
+
+model JobSkill {
+  jobId   String
+  skillId String
+
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, skillId])
+  @@index([skillId])
+}
+
+model JobView {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String?
+  sessionId String? // anonymous tracking
+  ip        String?
+  ua        String?
+  createdAt DateTime @default(now())
+
+  job  Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, createdAt])
+}
+
+// ------------------------
+// Applications & ATS
+// ------------------------
+
+model PipelineStage {
+  id       String  @id @default(cuid())
+  orgId    String
+  name     String // e.g., "Screening"
+  position Int
+  isFinal  Boolean @default(false)
+
+  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  Application Application[]
+
+  @@unique([orgId, name])
+  @@index([orgId, position])
+}
+
+model Application {
+  id          String           @id @default(cuid())
+  jobId       String
+  userId      String? // candidate user (if registered)
+  candidateId String? // CandidateProfile.id
+  stageId     String?
+  stage       ApplicationStage @default(APPLIED)
+  rating      Int?
+  resumeUrl   String?
+  coverLetter String?
+  answers     Json?
+  source      String? // where applied from
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  job         Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user        User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  candidate   CandidateProfile?  @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  stageRef    PipelineStage?     @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  notes       ApplicationNote[]
+  events      ApplicationEvent[]
+  attachments Attachment[]
+
+  @@index([jobId, stage])
+  @@index([userId])
+  @@index([candidateId])
+}
+
+model ApplicationNote {
+  id            String   @id @default(cuid())
+  applicationId String
+  authorId      String
+  body          String
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author      User        @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationEvent {
+  id            String    @id @default(cuid())
+  applicationId String
+  type          EventType
+  payload       Json?
+  createdAt     DateTime  @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, type, createdAt])
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  applicationId String?
+  userId        String?
+  jobId         String?
+  url           String
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  createdAt     DateTime @default(now())
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  job         Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([jobId])
+  @@index([userId])
+}
+
+// ------------------------
+// Candidate profiles
+// ------------------------
+
+model CandidateProfile {
+  id         String   @id @default(cuid())
+  userId     String?  @unique // may be guest/non‑registered
+  fullName   String
+  headline   String?
+  location   String?
+  bio        String?
+  websiteUrl String?
+  skills     String[] // denormalized for quick chips
+  resumeUrl  String?
+  visibility Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  experiences  Experience[]
+  educations   Education[]
+  links        ProfileLink[]
+  applications Application[]
+
+  @@index([userId])
+  @@index([visibility])
+}
+
+model Experience {
+  id          String    @id @default(cuid())
+  candidateId String
+  title       String
+  company     String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+}
+
+model Education {
+  id          String    @id @default(cuid())
+  candidateId String
+  school      String
+  degree      String?
+  field       String?
+  startDate   DateTime?
+  endDate     DateTime?
+
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+}
+
+model ProfileLink {
+  id          String @id @default(cuid())
+  candidateId String
+  label       String
+  url         String
+
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+}
+
+// ------------------------
+// Saved searches, alerts, bookmarks
+// ------------------------
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  query     Json // serialized filters
+  createdAt DateTime @default(now())
+
+  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts JobAlertSubscription[]
+
+  @@index([userId])
+}
+
+model JobAlertSubscription {
+  id            String              @id @default(cuid())
+  userId        String
+  savedSearchId String?
+  jobId         String?
+  frequency     String // "instant" | "daily" | "weekly"
+  active        Boolean             @default(true)
+  channel       NotificationChannel @default(EMAIL)
+  createdAt     DateTime            @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedSearch SavedSearch? @relation(fields: [savedSearchId], references: [id], onDelete: SetNull)
+  job         Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([jobId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([jobId])
+}
+
+// ------------------------
+// Notifications
+// ------------------------
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+model InAppNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  url       String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ------------------------
+// Billing (plans, subs, invoices, payments)
+// ------------------------
+
+model SubscriptionPlan {
+  id        String       @id @default(cuid())
+  orgId     String?
+  code      String       @unique
+  name      String
+  interval  PlanInterval
+  price     Decimal      @db.Decimal(10, 2)
+  currency  Currency     @default(USD)
+  features  Json // e.g., limits: { jobs_active: 10, featured_slots: 2 }
+  isPublic  Boolean      @default(true)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  org           Organization?  @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  subscriptions Subscription[]
+
+  @@index([orgId])
+}
+
+model Subscription {
+  id                 String   @id @default(cuid())
+  orgId              String
+  planId             String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  status             String // active, trialing, past_due, canceled
+  usage              Json? // metered usage snapshot
+
+  org      Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices Invoice[]
+
+  @@index([orgId, status])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  orgId          String
+  subscriptionId String?
+  number         String        @unique
+  currency       Currency      @default(USD)
+  amountDue      Decimal       @db.Decimal(10, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(10, 2)
+  status         InvoiceStatus @default(DRAFT)
+  issuedAt       DateTime      @default(now())
+  dueAt          DateTime?
+  metadata       Json?
+
+  org          Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payments     Payment[]
+
+  @@index([orgId, status])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  provider    String // "stripe", etc.
+  providerRef String? // charge id
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    Currency      @default(USD)
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  metadata    Json?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, status])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String
+  eventType   String
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([provider, eventType])
+}
