@@ -1,31 +1,36 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from 'express';
 
-export const errorMiddleware = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  err.message = err.message || "Internal Server Error";
-  const status = (err as any).status || 500;
+// Custom error type for better type safety
+interface CustomError extends Error {
+  status?: number;
+  cause?: string;
+}
 
-  if (err.cause === "custom") {
+export const errorMiddleware = (err: CustomError, _req: Request, res: Response): void => {
+  const status: number = typeof err.status === 'number' ? err.status : 500;
+  const message: string = err.message || 'Internal Server Error';
+
+  if (err.cause === 'custom') {
     res.status(status).json({
-      status: "error",
+      status: 'error',
       statusCode: status,
-      message: err.message,
+      message,
     });
-  } else if (err.name === "ValidationError") {
-    res.status(400).json({
-      status: "error",
-      statusCode: 400,
-      message: err.message,
-    });
-  } else {
-    res.status(status).json({
-      status: "error",
-      statusCode: status,
-      message: "Internal Server Error",
-    });
+    return;
   }
+
+  if (err.name === 'ValidationError') {
+    res.status(400).json({
+      status: 'error',
+      statusCode: 400,
+      message,
+    });
+    return;
+  }
+
+  res.status(status).json({
+    status: 'error',
+    statusCode: status,
+    message: 'Internal Server Error',
+  });
 };
