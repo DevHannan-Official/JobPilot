@@ -1,0 +1,59 @@
+# ------------------------------------------------------------- #
+#                        General Exclusions                     #
+# ------------------------------------------------------------- #
+# Compiled output directories
+dist/
+build/
+
+# Node.js and NPM
+node_modules/
+npm-debug.log
+.npm/
+
+# Environment files
+.env
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Logging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS and Editor Specific
+.DS_Store
+Thumbs.db
+.vscode/     # VS Code settings
+.idea/       # IntelliJ IDEA settings
+*.swp        # Vim swap files
+*.swo        # Vim swap files
+.local
+
+# ------------------------------------------------------------- #
+#                         TypeScript                            #
+# ------------------------------------------------------------- #
+# Transpiled JavaScript files
+*.js
+*.js.map
+*.d.ts
+
+# ------------------------------------------------------------- #
+#                           Docker                              #
+# ------------------------------------------------------------- #
+# Docker volumes and build contexts
+docker-compose.override.yml
+*.env.local
+
+# ------------------------------------------------------------- #
+#                      Microservices Build                      #
+# ------------------------------------------------------------- #
+# Built artifacts for individual services
+# These are typically created inside each service's folder
+# when you run the build script.
+dist/
+build/
