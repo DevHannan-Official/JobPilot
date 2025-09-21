@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", // Modern JS features
+    "module": "NodeNext", // ESM output
+    "moduleResolution": "NodeNext", // Works with ESM + Node 20
+    "lib": ["ES2022"], // Use latest JS standard
+    "types": ["node"], // Node.js types
+    "allowJs": false, // Only TypeScript
+    "checkJs": false,
+    "resolveJsonModule": true, // Allow importing JSON
+    "esModuleInterop": true, // CommonJS compatibility
+    "forceConsistentCasingInFileNames": true, // Case-sensitive paths
+    "strict": true, // Enable all strict checks
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true, // Faster builds
+    "outDir": "dist", // Output folder
+    "rootDir": "src", // Source folder
+    "allowSyntheticDefaultImports": true,
+    "useDefineForClassFields": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,12 +1,15 @@
-import express, { type Request, type Response } from "express";
+import express, {
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { ENV } from "./lib/env.js";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
-import morgan from "morgan";
-import proxy from "express-http-proxy";
+import ErrorHandler from "./lib/error-handler.js";
 
 const app = express();
 
@@ -20,14 +23,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(helmet());
-app.use(morgan("combined"));
-app.set("trust proxy", 1);
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello from API Gateway!");
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
+  next(new ErrorHandler("Test Error", 500));
 });
-
-app.use("/api/auth", proxy(ENV.AUTH_SERVICE_URL));
 
 app.use(errorMiddleware);
 
