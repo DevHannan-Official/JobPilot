@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import morgan from 'morgan';
 import proxy from 'express-http-proxy';
+import { routes } from './lib/routesConfig.js';
 
 const app = express();
 
@@ -27,7 +28,17 @@ app.get('/', (_req: Request, res: Response) => {
   res.send('Hello from API Gateway!');
 });
 
-app.use('/api/auth', proxy(ENV.AUTH_SERVICE_URL));
+Object.entries(routes.v1).forEach(([service, target]) => {
+  app.use(
+    `/v1/${service}`,
+    proxy(target, {
+      proxyReqPathResolver: (req) => {
+        // Keep original path after /v1/auth
+        return req.originalUrl.replace('/v1/auth', '/api');
+      },
+    })
+  );
+});
 
 app.use(errorMiddleware);
 
