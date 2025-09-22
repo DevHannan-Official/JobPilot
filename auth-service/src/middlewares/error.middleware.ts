@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 // Custom error type for better type safety
 interface CustomError extends Error {
@@ -6,7 +6,12 @@ interface CustomError extends Error {
   cause?: string;
 }
 
-export const errorMiddleware = (err: CustomError, _req: Request, res: Response): void => {
+export const errorMiddleware = (
+  err: CustomError,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void => {
   const status: number = typeof err.status === 'number' ? err.status : 500;
   const message: string = err.message || 'Internal Server Error';
 
@@ -14,15 +19,6 @@ export const errorMiddleware = (err: CustomError, _req: Request, res: Response):
     res.status(status).json({
       status: 'error',
       statusCode: status,
-      message,
-    });
-    return;
-  }
-
-  if (err.name === 'ValidationError') {
-    res.status(400).json({
-      status: 'error',
-      statusCode: 400,
       message,
     });
     return;

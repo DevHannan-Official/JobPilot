@@ -1,12 +1,10 @@
-import { Router, type Request, type Response } from 'express';
+import { Router } from 'express';
+import { signUpUser } from '../controllers/auth-controllers.js';
+import { validateBody } from '../middlewares/validator.middleware.js';
+import { signupSchema } from '../lib/schemas.js';
 
 const router = Router();
 
-router.get('/', (_req: Request, res: Response) => {
-  res.status(200).json({
-    message: 'Hello from Auth Service!',
-    status: 200,
-  });
-});
+router.post('/sign-up', validateBody(signupSchema), signUpUser);
 
 export default router;
