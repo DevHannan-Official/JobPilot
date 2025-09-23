@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const signupSchema = z.object({
+export const signUpSchema = z.object({
   name: z
     .string()
     .min(1, {
@@ -34,4 +34,13 @@ export const signupSchema = z.object({
     .regex(new RegExp('(?=.*[!@#$%^&*])'), {
       message: 'Password must contain at least one special character',
     }),
+});
+
+export const signInSchema = z.object({
+  email: z.string().min(1, {
+    message: 'Please fill all the fields',
+  }),
+  password: z.string().min(1, {
+    message: 'Please fill all the fields',
+  }),
 });

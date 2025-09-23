@@ -6,6 +6,11 @@ export const hashPassword = async (password: string) => {
   return hashedPassword;
 };
 
+export const comparePassword = async (password: string, hashedPassword: string) => {
+  const isValid = await argon.verify(hashedPassword, password);
+  return isValid;
+};
+
 export const saveAccessToken = async (accessToken: string, userId: string) => {
   try {
     const key = `accessToken:${userId}`;
