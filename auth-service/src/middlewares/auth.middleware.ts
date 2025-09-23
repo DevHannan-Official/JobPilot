@@ -5,7 +5,6 @@ import { prisma } from '../lib/prisma.js';
 
 // Extend Express Request type for user property
 import type { User } from '@prisma/client';
-import { verifyToken } from '../lib/token.js';
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
