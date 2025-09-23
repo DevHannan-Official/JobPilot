@@ -2,7 +2,7 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import asyncHandler from 'express-async-handler';
 import ErrorHandler from '../lib/error-handler.js';
-import { issueAccessToken, issueRefreshToken } from '../lib/token.js';
+import { issueAccessToken, issueRefreshToken, verifyToken } from '../lib/token.js';
 import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js';
 import { ENV } from '../lib/env.js';
 
@@ -123,3 +123,51 @@ export const authorizeUser = asyncHandler((req: Request, res: Response, _next: N
     .status(200)
     .json({ status: 'success', statusCode: 200, message: 'Authorized successfully', data: user });
 });
+
+// /refresh-token -> PATCH
+export const refreshToken = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const jidCookie = req.cookies?.jid as string;
+    const refreshToken =
+      typeof jidCookie === 'string' && jidCookie.startsWith('Bearer ')
+        ? jidCookie.split('Bearer ')[1]
+        : undefined;
+
+    if (!refreshToken) {
+      next(new ErrorHandler('Unauthorized', 401));
+      return;
+    }
+
+    const { userId } = verifyToken(refreshToken) as {
+      userId: string;
+    };
+    if (typeof userId !== 'string') {
+      next(new ErrorHandler('Unauthorized', 401));
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    user!.password = null;
+
+    if (!user) {
+      next(new ErrorHandler('Unauthorized', 401));
+      return;
+    }
+
+    const accessToken = issueAccessToken();
+    await saveAccessToken(accessToken, user.id);
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Authorized successfully',
+      data: user,
+      accessToken,
+    });
+  }
+);

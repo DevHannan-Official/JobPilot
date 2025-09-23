@@ -3,7 +3,7 @@ import { ENV } from './env.js';
 import crypto from 'crypto';
 
 export const issueRefreshToken = (userId: string) => {
-  const refreshToken = jwt.sign({ userId }, ENV.TOKENS_SECRET, {
+  const refreshToken = jwt.sign(userId, ENV.TOKENS_SECRET, {
     expiresIn: ENV.REFRESH_TOKEN_EXPIRES_IN,
   });
   return refreshToken;
@@ -12,4 +12,9 @@ export const issueRefreshToken = (userId: string) => {
 export const issueAccessToken = () => {
   const accessToken = crypto.randomBytes(64).toString('hex');
   return accessToken;
+};
+
+export const verifyToken = (token: string) => {
+  const decoded = jwt.verify(token, ENV.TOKENS_SECRET);
+  return decoded;
 };

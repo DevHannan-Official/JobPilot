@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authorizeUser,
   logoutUser,
+  refreshToken,
   signInUser,
   signUpUser,
 } from '../controllers/auth-controllers.js';
@@ -13,6 +14,8 @@ const router = Router();
 
 router.post('/sign-up', validateBody(signUpSchema), signUpUser);
 router.post('/sign-in', validateBody(signInSchema), signInUser);
+
+router.patch('/refresh-token', refreshToken);
 
 router.get('/me', authenticateUser, authorizeUser);
 router.get('/logout', authenticateUser, logoutUser);
