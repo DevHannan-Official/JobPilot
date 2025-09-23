@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import asyncHandler from 'express-async-handler';
 import ErrorHandler from '../lib/error-handler.js';
 import { issueAccessToken, issueRefreshToken } from '../lib/token.js';
-import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js';
+import { comparePassword, deleteAccessToken, hashPassword, saveAccessToken } from '../lib/utils.js';
 import { ENV } from '../lib/env.js';
 
 // /sign-up -> POST
@@ -38,7 +38,7 @@ export const signUpUser = asyncHandler(async (req: Request, res: Response, next:
   });
 
   // Generate both refresh token and access token
-  const refreshToken = issueRefreshToken(user.id);
+  const refreshToken = 'Bearer ' + issueRefreshToken(user.id);
   const accessToken = issueAccessToken();
 
   // Saving Access Token to redis
@@ -53,7 +53,7 @@ export const signUpUser = asyncHandler(async (req: Request, res: Response, next:
       sameSite: 'lax',
       maxAge: ENV.REFRESH_COOKIE_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
     })
-    .json({ status: 'success', statusCode: 201, message: 'Signed Up successfully' });
+    .json({ status: 'success', statusCode: 201, message: 'Signed Up successfully', accessToken });
 });
 
 // /sign-in -> POST
@@ -84,7 +84,7 @@ export const signInUser = asyncHandler(async (req: Request, res: Response, next:
   }
 
   // Generate both refresh token and access token
-  const refreshToken = issueRefreshToken(user.id);
+  const refreshToken = 'Bearer ' + issueRefreshToken(user.id);
   const accessToken = issueAccessToken();
 
   // Saving Access Token to redis
@@ -99,5 +99,17 @@ export const signInUser = asyncHandler(async (req: Request, res: Response, next:
       sameSite: 'lax',
       maxAge: ENV.REFRESH_COOKIE_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
     })
-    .json({ status: 'success', statusCode: 200, message: 'Signed In successfully' });
+    .json({ status: 'success', statusCode: 200, message: 'Signed In successfully', accessToken });
+});
+
+export const logoutUser = asyncHandler((req: Request, res: Response, _next: NextFunction) => {
+  // Clearing cookie from client
+  res
+    .status(200)
+    .clearCookie('jid', {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === 'production',
+      sameSite: 'lax',
+    })
+    .json({ status: 'success', statusCode: 200, message: 'Signed Out successfully' });
 });

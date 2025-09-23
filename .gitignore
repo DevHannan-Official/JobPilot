@@ -4,6 +4,7 @@
 # Compiled output directories
 dist/
 build/
+/src/generated/prisma
 
 # Node.js and NPM
 node_modules/
@@ -39,7 +40,7 @@ Thumbs.db
 # ------------------------------------------------------------- #
 # Transpiled JavaScript files
 *.js.map
-*.d.ts
+# *.d.ts
 
 # ------------------------------------------------------------- #
 #                           Docker                              #

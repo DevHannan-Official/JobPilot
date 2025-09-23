@@ -13,8 +13,8 @@ export const comparePassword = async (password: string, hashedPassword: string) 
 
 export const saveAccessToken = async (accessToken: string, userId: string) => {
   try {
-    const key = `accessToken:${userId}`;
-    await redis.set(key, accessToken, 'EX', 15 * 60 /* 15 minutes */);
+    const key = `accessToken:${accessToken}`;
+    await redis.set(key, userId, 'EX', 15 * 60 /* 15 minutes */);
   } catch (error) {
     console.error(error);
   }
