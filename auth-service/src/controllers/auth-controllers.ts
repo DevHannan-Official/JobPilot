@@ -102,6 +102,7 @@ export const signInUser = asyncHandler(async (req: Request, res: Response, next:
     .json({ status: 'success', statusCode: 200, message: 'Signed In successfully', accessToken });
 });
 
+// /logout -> GET
 export const logoutUser = asyncHandler((_req: Request, res: Response, _next: NextFunction) => {
   // Clearing cookie from client
   res
@@ -112,4 +113,13 @@ export const logoutUser = asyncHandler((_req: Request, res: Response, _next: Nex
       sameSite: 'lax',
     })
     .json({ status: 'success', statusCode: 200, message: 'Signed Out successfully' });
+});
+
+// /me -> GET
+export const authorizeUser = asyncHandler((req: Request, res: Response, _next: NextFunction) => {
+  const user = req.user;
+  user!.password = null;
+  res
+    .status(200)
+    .json({ status: 'success', statusCode: 200, message: 'Authorized successfully', data: user });
 });
