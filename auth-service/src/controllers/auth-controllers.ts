@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import asyncHandler from 'express-async-handler';
 import ErrorHandler from '../lib/error-handler.js';
 import { issueAccessToken, issueRefreshToken } from '../lib/token.js';
-import { comparePassword, deleteAccessToken, hashPassword, saveAccessToken } from '../lib/utils.js';
+import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js';
 import { ENV } from '../lib/env.js';
 
 // /sign-up -> POST
