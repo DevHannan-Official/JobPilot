@@ -102,7 +102,7 @@ export const signInUser = asyncHandler(async (req: Request, res: Response, next:
     .json({ status: 'success', statusCode: 200, message: 'Signed In successfully', accessToken });
 });
 
-export const logoutUser = asyncHandler((req: Request, res: Response, _next: NextFunction) => {
+export const logoutUser = asyncHandler((_req: Request, res: Response, _next: NextFunction) => {
   // Clearing cookie from client
   res
     .status(200)
