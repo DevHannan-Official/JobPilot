@@ -15,6 +15,8 @@ export const errorMiddleware = (
   const status: number = typeof err.status === 'number' ? err.status : 500;
   const message: string = err.message || 'Internal Server Error';
 
+  console.log(err);
+
   if (err.cause === 'custom') {
     res.status(status).json({
       status: 'error',

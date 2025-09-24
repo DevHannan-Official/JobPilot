@@ -15,4 +15,10 @@ export const ENV = {
   REFRESH_COOKIE_EXPIRES_IN_DAYS: Number(process.env.REFRESH_COOKIE_EXPIRES_IN_DAYS) || 30,
 
   REDIS_URL: process.env.REDIS_URL as string,
+
+  EMAIL_FROM: process.env.EMAIL_FROM as string,
+  EMAIL_HOST: process.env.EMAIL_HOST as string,
+  EMAIL_PORT: Number(process.env.EMAIL_PORT),
+  EMAIL_USER: process.env.EMAIL_USER as string,
+  EMAIL_PASSWORD: process.env.EMAIL_PASSWORD as string,
 };

@@ -2,9 +2,16 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import asyncHandler from 'express-async-handler';
 import ErrorHandler from '../lib/error-handler.js';
-import { issueAccessToken, issueRefreshToken, verifyToken } from '../lib/token.js';
+import {
+  issueAccessToken,
+  issueRefreshToken,
+  issueResetPasswordToken,
+  verifyToken,
+} from '../lib/token.js';
 import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js';
 import { ENV } from '../lib/env.js';
+import mailer from '../lib/mailer.js';
+import { forgetPasswordMail } from '../lib/mail-templates.js';
 
 // /sign-up -> POST
 export const signUpUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -168,6 +175,45 @@ export const refreshToken = asyncHandler(
       message: 'Authorized successfully',
       data: user,
       accessToken,
+    });
+  }
+);
+
+export const forgetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body as {
+      email: string;
+    };
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      next(new ErrorHandler('User not found', 404));
+      return;
+    }
+
+    const resetToken = issueResetPasswordToken(user.id);
+
+    setTimeout(() => {
+      void mailer.sendMail({
+        from: ENV.EMAIL_FROM,
+        to: email,
+        subject: 'Reset Password | JobPilot',
+        html: forgetPasswordMail({
+          token: resetToken,
+          date: new Date().getFullYear().toString(),
+        }),
+      });
+    }, 500);
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'A mail with password reset link has been sent to your email address',
     });
   }
 );

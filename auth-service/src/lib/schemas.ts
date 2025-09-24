@@ -44,3 +44,14 @@ export const signInSchema = z.object({
     message: 'Please fill all the fields',
   }),
 });
+
+export const forgetPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, {
+      message: 'Please fill all the fields',
+    })
+    .email({
+      message: 'Please enter a valid email address',
+    }),
+});
