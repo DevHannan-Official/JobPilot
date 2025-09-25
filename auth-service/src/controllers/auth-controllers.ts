@@ -217,3 +217,70 @@ export const forgetPassword = asyncHandler(
     });
   }
 );
+
+export const checkResetPasswordToken = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.query.token as string;
+    if (!token) {
+      next(new ErrorHandler('Invalid or Expired Link', 401));
+      return;
+    }
+
+    const { userId } = verifyToken(token) as {
+      userId: string;
+    };
+    if (typeof userId !== 'string') {
+      next(new ErrorHandler('Invalid or Expired Link', 401));
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!user) {
+      next(new ErrorHandler('Invalid or Expired Link', 404));
+      return;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Valid Link',
+    });
+  }
+);
+
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.query.token as string;
+    const { newPassword } = req.body as {
+      newPassword: string;
+    };
+
+    const { userId } = verifyToken(token) as {
+      userId: string;
+    };
+    if (typeof userId !== 'string') {
+      next(new ErrorHandler('Invalid or Expired Link', 401));
+      return;
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Password reset successfully',
+    });
+  }
+);

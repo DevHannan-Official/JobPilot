@@ -31,6 +31,7 @@ export const forgetPasswordMail = ({ token, date }: { token: string; date: strin
                   </tr>
                 </table>
                 <p style="margin-top: 24px; font-size: 14px; color: #888888; line-height: 1.5;">If the button doesn’t work, copy and paste this link into your browser:<br /><a href="https://jobpilot.io/reset-password?token=${token}" style="color: #0a65cc; word-break: break-all;">https://jobpilot.io/reset-password?token=${token}</a></p>
+                <p style=" font-size: 12px; color: #888888; line-height: 1.5; font-style: italic;">This link will expire in 15 minutes.</p>
               </td>
             </tr>
             <tr>

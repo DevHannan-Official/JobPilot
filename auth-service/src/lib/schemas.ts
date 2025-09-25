@@ -55,3 +55,23 @@ export const forgetPasswordSchema = z.object({
       message: 'Please enter a valid email address',
     }),
 });
+
+export const resetPasswordSchema = z.object({
+  newPassword: z
+    .string()
+    .min(1, {
+      message: 'Please fill all the fields',
+    })
+    .min(8, {
+      message: 'Password must be at least 8 characters',
+    })
+    .regex(new RegExp('(?=.*[a-z])(?=.*[A-Z])'), {
+      message: 'Password must contain at least one upper and lower case letter',
+    })
+    .regex(new RegExp('(?=.*[0-9])'), {
+      message: 'Password must contain at least one number',
+    })
+    .regex(new RegExp('(?=.*[!@#$%^&*])'), {
+      message: 'Password must contain at least one special character',
+    }),
+});
