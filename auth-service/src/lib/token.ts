@@ -14,10 +14,8 @@ export const issueAccessToken = () => {
   return accessToken;
 };
 
-export const issueResetPasswordToken = (userId: string) => {
-  const resetPasswordToken = jwt.sign({ userId }, ENV.TOKENS_SECRET, {
-    expiresIn: '15m',
-  });
+export const issueResetPasswordToken = () => {
+  const resetPasswordToken = crypto.randomBytes(32).toString('hex');
   return resetPasswordToken;
 };
 

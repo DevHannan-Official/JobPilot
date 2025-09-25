@@ -12,6 +12,7 @@ import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js'
 import { ENV } from '../lib/env.js';
 import mailer from '../lib/mailer.js';
 import { forgetPasswordMail } from '../lib/mail-templates.js';
+import redis from '../lib/redis.js';
 
 // /sign-up -> POST
 export const signUpUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -179,12 +180,14 @@ export const refreshToken = asyncHandler(
   }
 );
 
+// /forget-password -> POST
 export const forgetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { email } = req.body as {
       email: string;
     };
 
+    // Finding user, if it exists or not
     const user = await prisma.user.findUnique({
       where: {
         email,
@@ -196,9 +199,13 @@ export const forgetPassword = asyncHandler(
       return;
     }
 
-    const resetToken = issueResetPasswordToken(user.id);
+    // creating a new reset token and saving it to redis
+    const resetToken = issueResetPasswordToken();
+
+    await redis.set(`resetPassword:${resetToken}`, user.id, 'EX', 15 * 60 /* 15 minutes */);
 
     setTimeout(() => {
+      // sending the token via mail to user's email
       void mailer.sendMail({
         from: ENV.EMAIL_FROM,
         to: email,
@@ -218,17 +225,17 @@ export const forgetPassword = asyncHandler(
   }
 );
 
+// /check-link -> GET
 export const checkResetPasswordToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
+    // Getting token from params then validating it, that it is not expired or invalid
     const token = req.query.token as string;
     if (!token) {
       next(new ErrorHandler('Invalid or Expired Link', 401));
       return;
     }
 
-    const { userId } = verifyToken(token) as {
-      userId: string;
-    };
+    const userId = await redis.get(`resetPassword:${token}`);
     if (typeof userId !== 'string') {
       next(new ErrorHandler('Invalid or Expired Link', 401));
       return;
@@ -252,6 +259,7 @@ export const checkResetPasswordToken = asyncHandler(
   }
 );
 
+// /reset-password -> PATCH
 export const resetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const token = req.query.token as string;
@@ -259,14 +267,13 @@ export const resetPassword = asyncHandler(
       newPassword: string;
     };
 
-    const { userId } = verifyToken(token) as {
-      userId: string;
-    };
+    const userId = await redis.get(`resetPassword:${token}`);
     if (typeof userId !== 'string') {
       next(new ErrorHandler('Invalid or Expired Link', 401));
       return;
     }
 
+    // Hashing user's new password and updating it to database
     const hashedPassword = await hashPassword(newPassword);
     await prisma.user.update({
       where: {
@@ -276,6 +283,9 @@ export const resetPassword = asyncHandler(
         password: hashedPassword,
       },
     });
+
+    // deleting the old token so that it can't be used again
+    await redis.del(`resetPassword:${token}`);
 
     res.status(200).json({
       status: 'success',
