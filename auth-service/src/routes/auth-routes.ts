@@ -6,8 +6,10 @@ import {
   logoutUser,
   refreshToken,
   resetPassword,
+  sendVerificationCode,
   signInUser,
   signUpUser,
+  verifyAccount,
 } from '../controllers/auth-controllers.js';
 import { validateBody } from '../middlewares/validator.middleware.js';
 import {
@@ -28,6 +30,9 @@ router.patch('/refresh-token', refreshToken);
 router.post('/forget-password', validateBody(forgetPasswordSchema), forgetPassword);
 router.get('/check-link', checkResetPasswordToken);
 router.patch('/reset-password', validateBody(resetPasswordSchema), resetPassword);
+
+router.get('/verify-email', authenticateUser, sendVerificationCode);
+router.patch('/verify-email', authenticateUser, verifyAccount);
 
 router.get('/me', authenticateUser, authorizeUser);
 router.get('/logout', authenticateUser, logoutUser);

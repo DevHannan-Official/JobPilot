@@ -136,14 +136,15 @@ model Organization {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String
-  status    UserStatus @default(ACTIVE)
-  avatarUrl String?
-  locale    String? // e.g. en, ur
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String
+  status     UserStatus @default(ACTIVE)
+  avatarUrl  String?
+  locale     String? // e.g. en, ur
+  isVerified Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   // Auth
   password String?

@@ -19,6 +19,11 @@ export const issueResetPasswordToken = () => {
   return resetPasswordToken;
 };
 
+export const issueVerificationCode = () => {
+  const verificationCode = Math.floor(100000 + Math.random() * 900000);
+  return verificationCode;
+};
+
 export const verifyToken = (token: string) => {
   try {
     const decoded = jwt.verify(token, ENV.TOKENS_SECRET);

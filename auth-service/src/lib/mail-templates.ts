@@ -45,3 +45,144 @@ export const forgetPasswordMail = ({ token, date }: { token: string; date: strin
 </html>
 `;
 };
+
+export const verifyMail = ({ code, date, name }: { code: number; date: string; name: string }) => {
+  return `
+  <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your Account | JobPilot</title>
+  </head>
+  <body style="background-color: #f1f2f4; font-family: sans-serif">
+    <table
+      role="presentation"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="background-color: #f1f2f4; padding: 20px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            style="
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                align="center"
+                style="background-color: #0a65cc; padding: 16px"
+              >
+                <a
+                  href="https://jobpilot.io"
+                  style="text-decoration: none; display: inline-block"
+                >
+                  <img
+                    src="https://res.cloudinary.com/dcmjlzugw/image/upload/v1758728040/ogo-white_wmndqa.png"
+                    alt="Jobpilot Logo"
+                    width="120"
+                    style="display: block; filter: saturate(0) brightness(100)"
+                  />
+                </a>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding: 24px">
+                <h2
+                  style="
+                    margin: 0 0 12px;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #333333;
+                  "
+                >
+                  Verify your account
+                </h2>
+                <p
+                  style="
+                    margin: 0 0 24px;
+                    font-size: 16px;
+                    color: #555555;
+                    line-height: 1.5;
+                  "
+                >
+                  Hello ${name},<br />
+                  To complete your registration, please enter the verification
+                  code below in the app or website.
+                </p>
+
+                <!-- Verification Code -->
+                <div
+                  style="
+                    background-color: #f1f2f4;
+                    padding: 16px;
+                    text-align: center;
+                    font-size: 24px;
+                    font-weight: bold;
+                    letter-spacing: 4px;
+                    color: #0a65cc;
+                    border-radius: 6px;
+                    margin-bottom: 24px;
+                  "
+                >
+                  ${code}
+                </div>
+
+                <p
+                  style="
+                    font-size: 14px;
+                    color: #888888;
+                    line-height: 1.5;
+                    margin-bottom: 8px;
+                  "
+                >
+                  If you didn’t request this, you can safely ignore this email.
+                </p>
+                <p
+                  style="
+                    font-size: 12px;
+                    color: #888888;
+                    line-height: 1.5;
+                    font-style: italic;
+                  "
+                >
+                  This code will expire in 15 minutes.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                align="center"
+                style="
+                  background-color: #f9f9f9;
+                  padding: 16px;
+                  font-size: 12px;
+                  color: #999999;
+                "
+              >
+                &copy; ${date} Jobpilot. All rights reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `;
+};

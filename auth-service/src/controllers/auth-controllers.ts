@@ -6,12 +6,13 @@ import {
   issueAccessToken,
   issueRefreshToken,
   issueResetPasswordToken,
+  issueVerificationCode,
   verifyToken,
 } from '../lib/token.js';
 import { comparePassword, hashPassword, saveAccessToken } from '../lib/utils.js';
 import { ENV } from '../lib/env.js';
 import mailer from '../lib/mailer.js';
-import { forgetPasswordMail } from '../lib/mail-templates.js';
+import { forgetPasswordMail, verifyMail } from '../lib/mail-templates.js';
 import redis from '../lib/redis.js';
 
 // /sign-up -> POST
@@ -291,6 +292,87 @@ export const resetPassword = asyncHandler(
       status: 'success',
       statusCode: 200,
       message: 'Password reset successfully',
+    });
+  }
+);
+
+export const sendVerificationCode = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const user = req.user;
+    if (user?.isVerified) {
+      res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        message: 'Your account is already verified',
+      });
+      return;
+    }
+
+    const code = issueVerificationCode();
+
+    await redis.set(`verificationCode:${user!.id}`, code, 'EX', 15 * 60 /* 15 minutes */);
+
+    setTimeout(() => {
+      // sending the token via mail to user's email
+      void mailer.sendMail({
+        from: ENV.EMAIL_FROM,
+        to: user!.email,
+        subject: 'Verification your Account | JobPilot',
+        html: verifyMail({
+          code,
+          name: user!.name,
+          date: new Date().getFullYear().toString(),
+        }),
+      });
+    }, 500);
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'A mail with verification code has been sent to your email address',
+    });
+  }
+);
+
+export const verifyAccount = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { code } = req.body as {
+      code: number;
+    };
+
+    if (req.user?.isVerified) {
+      res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        message: 'Your account is already verified',
+      });
+      return;
+    }
+
+    const userId = await redis.get(`verificationCode:${req.user!.id}`);
+    if (typeof userId !== 'string') {
+      next(new ErrorHandler('Invalid or Expired Link', 401));
+      return;
+    }
+
+    if (userId !== code.toString()) {
+      next(new ErrorHandler('Invalid Code', 401));
+      return;
+    }
+
+    await prisma.user.update({
+      where: {
+        id: req.user!.id,
+      },
+      data: {
+        isVerified: true,
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Account verified successfully',
     });
   }
 );
