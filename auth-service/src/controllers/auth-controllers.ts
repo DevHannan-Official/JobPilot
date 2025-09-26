@@ -296,9 +296,12 @@ export const resetPassword = asyncHandler(
   }
 );
 
+// /verify-email -> GET
 export const sendVerificationCode = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const user = req.user;
+
+    // Checking if user is already verified or not?
     if (user?.isVerified) {
       res.status(200).json({
         status: 'success',
@@ -308,6 +311,8 @@ export const sendVerificationCode = asyncHandler(
       return;
     }
 
+    // Issueing a new account verification code and setting to redis
+    // And sending mail to user's email
     const code = issueVerificationCode();
 
     await redis.set(`verificationCode:${user!.id}`, code, 'EX', 15 * 60 /* 15 minutes */);
@@ -334,12 +339,14 @@ export const sendVerificationCode = asyncHandler(
   }
 );
 
+// /verify-account -> PATCH
 export const verifyAccount = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { code } = req.body as {
       code: number;
     };
 
+    // Checking if user is already verified or not?
     if (req.user?.isVerified) {
       res.status(200).json({
         status: 'success',
@@ -349,17 +356,19 @@ export const verifyAccount = asyncHandler(
       return;
     }
 
+    // Checking if the verification is correct and not expired!
     const userId = await redis.get(`verificationCode:${req.user!.id}`);
     if (typeof userId !== 'string') {
-      next(new ErrorHandler('Invalid or Expired Link', 401));
+      next(new ErrorHandler('Invalid or expired Code', 401));
       return;
     }
 
     if (userId !== code.toString()) {
-      next(new ErrorHandler('Invalid Code', 401));
+      next(new ErrorHandler('Invalid or expired Code', 401));
       return;
     }
 
+    // Updating user
     await prisma.user.update({
       where: {
         id: req.user!.id,
